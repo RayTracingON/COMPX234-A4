@@ -4,7 +4,11 @@ import java.net.InetAddress;
 import java.util.Scanner;
 
 public class UDPClient {
-    public static void main(String[] args) throws java.net.SocketException {
+    int ID;
+    public UDPClient(int name) {
+        this.ID = name;
+    }
+    public void start() throws java.net.SocketException {
         try (DatagramSocket clientSocket = new DatagramSocket();Scanner scanner = new Scanner(System.in)){
             InetAddress serverAddress = InetAddress.getByName("localhost");
             int serverPort = 51234;

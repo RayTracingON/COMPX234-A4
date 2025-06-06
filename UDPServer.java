@@ -3,9 +3,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class UDPServer {
-    public static void main(String[] args) {
+    public void start() {
+        DatagramSocket serverSocket = null;
         try {
-            DatagramSocket serverSocket = new DatagramSocket(51234);
+            serverSocket = new DatagramSocket(51234);
             System.out.println("UDP Server is running and waiting for clients...");
             byte[] receiveData = new byte[1024];
             while (true) {
@@ -21,9 +22,14 @@ public class UDPServer {
                 ClientHandler clientHandler = new ClientHandler(newClientRequest);
                 Thread handlerThread = new Thread(clientHandler);
                 handlerThread.start();
+                handlerThread.join();
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
         }
     }
 
