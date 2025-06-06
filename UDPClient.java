@@ -8,7 +8,7 @@ public class UDPClient {
     public UDPClient(int name) {
         this.ID = name;
     }
-    public void start() throws java.net.SocketException {
+    public static void main(String[] args) {
         try (DatagramSocket clientSocket = new DatagramSocket();Scanner scanner = new Scanner(System.in)){
             InetAddress serverAddress = InetAddress.getByName("localhost");
             int serverPort = 51234;

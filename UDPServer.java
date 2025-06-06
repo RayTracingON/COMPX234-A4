@@ -3,7 +3,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class UDPServer {
-    public void start() {
+    public static void main() {
         DatagramSocket serverSocket = null;
         try {
             serverSocket = new DatagramSocket(51234);
