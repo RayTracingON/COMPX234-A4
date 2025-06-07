@@ -10,7 +10,7 @@ public class UDPClient {
         this.ID = name;
     }
     public static void main(String[] args) {
-
+        while(state ==1){
         try (DatagramSocket clientSocket = new DatagramSocket();Scanner scanner = new Scanner(System.in)){
             
             InetAddress serverAddress = InetAddress.getByName("localhost");
@@ -22,7 +22,7 @@ public class UDPClient {
                 System.out.println("Exiting client.");
                 return;
             }
-            while(state ==1){
+            
             byte[] sendData = messageToSend.getBytes();
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
             clientSocket.send(sendPacket);
@@ -32,10 +32,7 @@ public class UDPClient {
             clientSocket.receive(receivePacket);
             String serverResponse = new String(receivePacket.getData(), 0, receivePacket.getLength());
             System.out.println("Response from server: " + serverResponse);
-            }
-            
-
         }catch (Exception e) {
             e.printStackTrace();
-        }
+        }}
 }}
