@@ -25,7 +25,6 @@ public class UDPServer {
                 ClientHandler clientHandler = new ClientHandler(newClientRequest);
                 Thread handlerThread = new Thread(clientHandler);
                 handlerThread.start();
-                handlerThread.join();
             }
         } catch (Exception e) {
             e.printStackTrace();
