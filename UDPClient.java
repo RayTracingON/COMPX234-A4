@@ -32,6 +32,18 @@ public class UDPClient {
             clientSocket.receive(receivePacket);
             String serverResponse = new String(receivePacket.getData(), 0, receivePacket.getLength());
             System.out.println("Response from server: " + serverResponse);
+            if (serverResponse.startsWith("ERR")) {
+                System.err.println("Server returned an error: " + serverResponse);
+                continue; 
+            }
+
+            if (!serverResponse.startsWith("OK")) {
+                System.err.println("Received an unexpected response from server: " + serverResponse);
+                continue;
+            }
+            
+
+
             }
         }
         catch (Exception e) {
