@@ -55,6 +55,10 @@ static class ClientHandler implements Runnable {
 
             if (parts.length != 2 || !parts[0].equalsIgnoreCase("DOWNLOAD")) {
                 System.err.println("Invalid request from client: " + requestString);
+                String errorMsg = "ERR INVALID_REQUEST";
+                byte[] errorData = errorMsg.getBytes();
+                DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, clientAddress, clientPort);
+                dataSocket.send(errorPacket); 
                 return;
             }
 
