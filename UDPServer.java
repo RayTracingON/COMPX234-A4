@@ -1,6 +1,9 @@
+import java.io.File;
+import java.io.FileInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.Base64;
 
 public class UDPServer {
     public static void main(String[] args) {
@@ -35,49 +38,93 @@ public class UDPServer {
 
 static class ClientHandler implements Runnable {
 
-    private DatagramPacket initialRequestPacket;
+    private DatagramPacket requestPacket;
     public ClientHandler(DatagramPacket requestPacket) {
-        this.initialRequestPacket = requestPacket;
+        this.requestPacket = requestPacket;
     }
 
     @Override
     public void run() {
         try (DatagramSocket dataSocket = new DatagramSocket()) {
             
-            InetAddress clientAddress = initialRequestPacket.getAddress();
-            int clientPort = initialRequestPacket.getPort();
-            String clientMessage = new String(initialRequestPacket.getData(), 0, initialRequestPacket.getLength());
+            InetAddress clientAddress = requestPacket.getAddress();
+            int clientPort = requestPacket.getPort();
 
-            System.out.println("----------------------------------------------------");
-            System.out.println("Worker thread created for: " + clientAddress.getHostAddress() + ":" + clientPort);
-            System.out.println("This thread is running on port: " + dataSocket.getLocalPort()); // 打印出这个线程使用的新端口
-            System.out.println("Initial client message: \"" + clientMessage + "\"");
+            String requestString = new String(requestPacket.getData(), 0, requestPacket.getLength());
+            String[] parts = requestString.split(" ");
 
-            // --- 在实际作业中，这里的逻辑会是 ---
-            // 1. 准备 "OK <filename> SIZE <size> PORT <new_port>" 这样的响应
-            // 2. 将包含新端口号(dataSocket.getLocalPort())的响应发送给客户端
-            // 3. 进入循环，等待客户端在这个新端口上发送 FILE GET 请求
-            // 4. 发送文件数据块...
-            // 5. 直到文件传输结束
-            
-            // 为了演示，我们只发送一个简单的回复
-            String responseMessage = "Hello from the worker thread! Your request is being processed.";
-            byte[] sendData = responseMessage.getBytes();
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, clientAddress, clientPort);
-            
-            // 注意：为了让这个简化的例子能跑通，我们仍然通过主socket的端口回复。
-            // 在你的作业里，客户端在收到OK消息后，会向dataSocket.getLocalPort()这个新端口发消息。
-            // 这里我们用一个假的DatagramSocket来发送，模拟在主端口回复。
-            DatagramSocket mainSocketSimulator = new DatagramSocket(); // 临时的socket来发送回复
-            mainSocketSimulator.send(sendPacket);
-            mainSocketSimulator.close();
+            if (parts.length != 2 || !parts[0].equalsIgnoreCase("DOWNLOAD")) {
+                System.err.println("Invalid request from client: " + requestString);
+                return;
+            }
+
+            String filename = parts[1];
+            File file = new File(filename);
+            if (!file.exists()) {
+                String errorMsg = "ERR " + filename + " NOT_FOUND";
+                byte[] errorData = errorMsg.getBytes();
+                DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, clientAddress, clientPort);
+                dataSocket.send(errorPacket); 
+                return;
+            }
+
+            long fileSize = file.length();
+            int newPort = dataSocket.getLocalPort();
+            String okResponse = "OK " + filename + " SIZE " + fileSize + " PORT " + newPort;
+            byte[] okData = okResponse.getBytes();
+            DatagramPacket okPacket = new DatagramPacket(okData, okData.length, clientAddress, clientPort);
+            dataSocket.send(okPacket); // Use the new socket to send the OK message
+
+            System.out.println("Worker thread for " + filename + " on port " + newPort + " is ready.");
 
 
-            System.out.println("Response sent to client. Worker thread finishing.");
-            System.out.println("----------------------------------------------------");
+            byte[] buffer = new byte[2048]; // Buffer for receiving requests like "FILE GET..."
+            while (true) { // This loop will handle all chunks for this file transfer
+                DatagramPacket fileRequestPacket = new DatagramPacket(buffer, buffer.length);
+                
+                // Set a timeout in case the client stops sending requests
+                dataSocket.setSoTimeout(30000); // 30 seconds timeout
+                
+                dataSocket.receive(fileRequestPacket); // Wait for "FILE GET..." on the new port
+                
+                String fileRequest = new String(fileRequestPacket.getData(), 0, fileRequestPacket.getLength());
+                System.out.println("Received on port " + newPort + ": " + fileRequest);
+
+                if (fileRequest.contains("GET")) {
+                    // For this example, we just send the first 1000 bytes as one chunk.
+                    // In your assignment, you'd read the specific byte range requested.
+                    try (FileInputStream fis = new FileInputStream(file)) {
+                        byte[] fileChunk = new byte[1000];
+                        int bytesRead = fis.read(fileChunk, 0, 1000);
+
+                        if (bytesRead != -1) {
+                            byte[] actualChunk = new byte[bytesRead];
+                            System.arraycopy(fileChunk, 0, actualChunk, 0, bytesRead);
+                            
+                            // Encode data with Base64
+                            String encodedData = Base64.getEncoder().encodeToString(actualChunk);
+                            String dataResponse = "FILE " + filename + " OK START 0 END " + (bytesRead - 1) + " DATA " + encodedData;
+                            byte[] sendData = dataResponse.getBytes();
+
+                            DatagramPacket dataPacket = new DatagramPacket(sendData, sendData.length, clientAddress, clientPort);
+                            dataSocket.send(dataPacket);
+                        }
+                    }
+                }
+                
+                // In the real assignment, you would check for a "CLOSE" message to break the loop.
+                if (fileRequest.contains("CLOSE")) {
+                    System.out.println("Client finished. Closing connection on port " + newPort);
+                    break;
+                }
+            }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Handler thread error: " + e.getMessage());
+            //e.printStackTrace();
         }
+
+
+
     }}}
 
