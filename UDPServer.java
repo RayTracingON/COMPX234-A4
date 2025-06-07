@@ -50,9 +50,9 @@ static class ClientHandler implements Runnable {
             int clientPort = requestPacket.getPort();
 
             String requestString = new String(requestPacket.getData(), 0, requestPacket.getLength());
-            String[] parts = requestString.split(" ");
+            String[] parts = requestString.split(" ",2);
 
-            if (parts.length != 2 || !parts[0].equalsIgnoreCase("DOWNLOAD")) {
+            if (!parts[0].equalsIgnoreCase("DOWNLOAD")) {
                 System.err.println("Invalid request from client: " + requestString);
                 String errorMsg = "ERR INVALID_REQUEST";
                 byte[] errorData = errorMsg.getBytes();
