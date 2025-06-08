@@ -7,9 +7,23 @@ import java.util.Base64;
 
 public class UDPServer {
     public static void main(String[] args) {
+        if (args.length < 1) {
+            System.out.println("Usage: java UDPServer <port_number>");
+            return; // 如果没有提供端口号，打印用法并退出
+        }
+        int port = -1;
+        try {
+            // 2. 将字符串参数解析为整数
+            port = Integer.parseInt(args[0]);
+        } catch (NumberFormatException e) {
+            System.err.println("Error: Port number must be an integer.");
+            System.out.println("Usage: java UDPServer <port_number>");
+            return;
+        }
+
         DatagramSocket serverSocket = null;
         try {
-            serverSocket = new DatagramSocket(51234);
+            serverSocket = new DatagramSocket(port);
             System.out.println("UDP Server is running and waiting for clients...");
             byte[] receiveData = new byte[1024];
             while (true) {
