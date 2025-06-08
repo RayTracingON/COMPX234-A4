@@ -1,5 +1,4 @@
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -33,6 +32,8 @@ public class UDPClient {
             System.out.println("Message sent to server.");
             byte[] receiveData = new byte[2048];
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+            try{
+            clientSocket.setSoTimeout(5000); // 设置超时时间为5秒
             clientSocket.receive(receivePacket);
             String serverResponse = new String(receivePacket.getData(), 0, receivePacket.getLength());
             if (serverResponse.startsWith("ERR")) {
@@ -82,10 +83,8 @@ public class UDPClient {
                     int dataIndex = dataResponse.indexOf(dataHeader);
 
                     if (dataIndex != -1) {
-                    // 提取 " DATA " 关键字之后的所有内容
                     String base64Data = dataResponse.substring(dataIndex + dataHeader.length());
     
-                    // 现在 base64Data 是纯净的Base64字符串，可以安全地解码
                     byte[] decodedData = Base64.getDecoder().decode(base64Data);
                     fos.write(decodedData);
                     bytesReceived += decodedData.length;
@@ -94,10 +93,15 @@ public class UDPClient {
                     else {
                         System.err.println("Received corrupted or invalid data packet: " + dataResponse);
                     }
+                }}}
+                catch (SocketTimeoutException e) {
+                    System.err.println("Timeout: No response from server within 5 seconds.");
+                    System.err.println("Client will now shut down.");
+                    break; 
+                }
 
-
-            }}}
-        }
+            }}
+        
         catch (Exception e) {
             e.printStackTrace();
         }}}
