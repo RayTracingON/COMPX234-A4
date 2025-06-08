@@ -93,13 +93,18 @@ public class UDPClient {
                     else {
                         System.err.println("Received corrupted or invalid data packet: " + dataResponse);
                     }
-                }}}
+                }
+                String closeRequest = "FILE " + filename + " CLOSE";
+                byte[] closeData = closeRequest.getBytes();
+                DatagramPacket closePacket = new DatagramPacket(closeData, closeData.length, serverAddress, dataPort);
+                clientSocket.send(closePacket);
+                System.out.println("Sent CLOSE message to server on port " + dataPort);
+            }}
                 catch (SocketTimeoutException e) {
                     System.err.println("Timeout: No response from server within 5 seconds.");
                     System.err.println("Client will now shut down.");
                     break; 
                 }
-
             }}
         
         catch (Exception e) {
