@@ -27,7 +27,6 @@ public class UDPServer {
                 welcomeSocket.receive(receivePacket);
                 System.out.println("Main thread received a new client request from " + receivePacket.getAddress().getHostAddress());
                 
-                // 将 welcomeSocket 和请求包一起传递给 Handler
                 ClientHandler clientHandler = new ClientHandler(welcomeSocket, receivePacket);
                 Thread handlerThread = new Thread(clientHandler);
                 handlerThread.start();
@@ -38,12 +37,11 @@ public class UDPServer {
     }
 
     static class ClientHandler implements Runnable {
-        private DatagramSocket welcomeSocket; // 用于发送初始OK响应
-        private DatagramPacket requestPacket; // 初始请求包
+        private DatagramSocket welcomeSocket; 
+        private DatagramPacket requestPacket; 
 
         public ClientHandler(DatagramSocket welcomeSocket, DatagramPacket requestPacket) {
             this.welcomeSocket = welcomeSocket;
-            // 创建请求包的副本，以防主线程的缓冲区被覆盖
             this.requestPacket = new DatagramPacket(
                 requestPacket.getData(),
                 requestPacket.getLength(),
@@ -66,7 +64,7 @@ public class UDPServer {
                     String errorMsg = "ERR INVALID_REQUEST";
                     byte[] errorData = errorMsg.getBytes();
                     DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, requestPacket.getAddress(), requestPacket.getPort());
-                    this.welcomeSocket.send(errorPacket); // 使用 welcomeSocket 发送错误
+                    this.welcomeSocket.send(errorPacket);
                     return;
                 }
                 
@@ -75,35 +73,30 @@ public class UDPServer {
                     String errorMsg = "ERR " + filename + " NOT_FOUND";
                     byte[] errorData = errorMsg.getBytes();
                     DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, requestPacket.getAddress(), requestPacket.getPort());
-                    this.welcomeSocket.send(errorPacket); // 使用 welcomeSocket 发送错误
+                    this.welcomeSocket.send(errorPacket); 
                     return;
                 }
 
-                // 创建一个新的数据Socket，用于后续的文件传输
                 try (DatagramSocket dataSocket = new DatagramSocket()) {
                     InetAddress clientAddress = requestPacket.getAddress();
                     int clientPort = requestPacket.getPort();
                     long fileSize = file.length();
                     int newPort = dataSocket.getLocalPort();
 
-                    // **核心修复：使用主欢迎Socket来发送OK响应**
                     String okResponse = "OK " + filename + " SIZE " + fileSize + " PORT " + newPort;
                     byte[] okData = okResponse.getBytes();
                     DatagramPacket okPacket = new DatagramPacket(okData, okData.length, clientAddress, clientPort);
                     
-                    // 使用传递进来的 welcomeSocket 发送，保证客户端能收到
                     this.welcomeSocket.send(okPacket); 
 
                     System.out.println("Worker thread for '" + filename + "' on port " + newPort + " is ready.");
 
-                    // 使用RandomAccessFile处理文件块
                     try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
                         byte[] buffer = new byte[2048];
                         while (true) {
                             DatagramPacket fileRequestPacket = new DatagramPacket(buffer, buffer.length);
-                            dataSocket.setSoTimeout(30000); // 30秒超时
+                            dataSocket.setSoTimeout(30000); 
                             
-                            // 在新端口等待GET请求
                             dataSocket.receive(fileRequestPacket); 
                             
                             String fileRequest = new String(fileRequestPacket.getData(), 0, fileRequestPacket.getLength()).trim();
